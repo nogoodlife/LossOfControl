@@ -15,10 +15,7 @@ local Engine = select(2, ...);
 local pairs, type, wipe = pairs, type, wipe;
 
 --@class SavedVariable<db>
-Engine.DB = {};
-local DB = Engine.DB;
-
---@defaults<db>
+local DB = {};
 local defaults = {
 	enabled = true,
 
@@ -39,21 +36,32 @@ local defaults = {
 	enableAnimations = true,
 	enablePulse = true,
 	dynamicTextOn = true,
+	timerDecimal = true,
 
-	-- Display types: 0=off, 1=alert, 2=full
+	-- Engine.Data.DisplayType: 0=off, 1=alert, 2=full
 	displayTypeByKind = {
 		SCHOOL_INTERRUPT = 2,
 		STUN = 2,
-		FEAR = 2,
-		ROOT = 2,
 		SILENCE = 2,
-		DISARM = 2,
-		POLYMORPH = 2,
-		FREEZE = 2,
+		INCAP = 2,
+		FEAR = 2,
+		HORROR = 2,
 		CYCLONE = 2,
 		BANISH = 2,
+		POLYMORPH = 2,
+		SAP = 2,
+		CHARM = 2,
 		DISORIENT = 2,
+		FREEZE = 2,
+		SHACKLE = 2,
+		SLEEP = 2,
+		ROOT = 2,
+		DISARM = 2,
+		-- SNARE = 1,
 	},
+
+	-- Priority overrides (mirrors Data.PRIORITY)
+	priorityByKind = {},
 
 	-- Custom overrides
 	customAuras = {},
@@ -102,11 +110,6 @@ function DB:Init()
 	-- Shortcuts
 	self.profile = LoCDB.profile;
 	Engine.Settings = self.profile;
-
-	-- Debug mode
-	if Engine.Debug then
-		self.profile.logUnknown = true;
-	end
 end
 
 function DB:Reset()
@@ -118,3 +121,6 @@ end
 function DB:GetDefault(key)
 	return defaults[key];
 end
+
+--@export<ns>
+Engine.DB = DB;

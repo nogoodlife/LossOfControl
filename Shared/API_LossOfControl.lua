@@ -11,47 +11,31 @@
 --@class Engine<ns>
 local Engine = select(2, ...);
 
-
 --@natives<lua,wow>
-local GetTime = GetTime;
 local tinsert = table.insert;
 local tremove = table.remove;
-local tsort = table.sort;
-local wipe = wipe;
+local tsort   = table.sort;
+local wipe    = wipe;
+local GetTime = GetTime;
 
 
---@class C_LossOfControl<API>
+--@class C_LossOfControl<api>
 local C_LossOfControl = {};
 Engine.API.C_LossOfControl = C_LossOfControl;
 
 
---@data
-local activeEffects = {};
-local effectIndex = {};
-local needsSort = false;
-
 --# -------------------- Internal Helpers --------------------
 
-local objectPool = {};
-local poolSize = 0;
-local function AcquireEffectObject()
-	if poolSize > 0 then
-		local obj = objectPool[poolSize];
-		objectPool[poolSize] = nil;
-		poolSize = poolSize - 1;
-		return obj;
-	end
-	return {};
-end
+local activeEffects = {};
+local effectIndex = {};
 
-local function ReleaseEffectObject(obj)
-	wipe(obj);
-	poolSize = poolSize + 1;
-	objectPool[poolSize] = obj;
-end
+-- Pool
+local createFunc = function() return {}; end
+local resetFunc  = function(obj) wipe(obj); end
+local effectPool = Engine.Util.CreatePool(createFunc, resetFunc);
 
-
---# -------------------- Sorting Auras --------------------
+-- Sorting Auras
+local needsSort = false;
 
 local function CompareEffects(a, b)
 	if a.priority ~= b.priority then
@@ -126,8 +110,7 @@ function C_LossOfControl.AddLossOfControlEffect(spellID, locType, icon, duration
 		return false; -- not added
 	end
 
-	-- Add new effect
-	local data = AcquireEffectObject();
+	local data = effectPool.Acquire();
 	data.spellID = spellID;
 	data.locType = locType;
 	data.iconTexture = icon;
@@ -150,8 +133,8 @@ function C_LossOfControl.RemoveBySpellID(spellID)
 		return false;
 	end
 
-	local data = tremove(activeEffects, index)
-	ReleaseEffectObject(data);
+	local data = tremove(activeEffects, index);
+	effectPool.Release(data);
 	RebuildIndex();
 
 	return true;
@@ -165,7 +148,7 @@ function C_LossOfControl.RemoveExpiredEffects()
 		local data = activeEffects[i];
 		if data.expirationTime and data.expirationTime <= now then
 			tremove(activeEffects, i);
-			ReleaseEffectObject(data);
+			effectPool.Release(data);
 			removed = true;
 		end
 	end
@@ -179,9 +162,9 @@ end
 
 function C_LossOfControl.ClearAll()
 	for i = #activeEffects, 1, -1 do
-		ReleaseEffectObject(activeEffects[i]);
-		activeEffects[i] = nil;
+		effectPool.Release(activeEffects[i]);
 	end
+	wipe(activeEffects);
 	wipe(effectIndex);
 	needsSort = false;
 end

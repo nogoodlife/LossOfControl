@@ -11,7 +11,8 @@
 --@class Engine<ns>
 local Engine = select(2, ...);
 
---@imports<ns>
+--@import<ns>
+local Data = Engine.Data;
 local Util = Engine.Util;
 local Dispatch = Engine.Dispatcher
 local Events = Engine.Events;
@@ -33,6 +34,7 @@ local SOUND_ALERT = Engine.Media.SOUND_ALERT;
 local ACTIVE_INDEX = 1;
 local TIME_LEFT_FRAME_WIDTH = 200;
 local TIME_OFFSET = 6;
+local SECONDS_GAP = 4;
 local UPDATE_THROTTLE = 0.05;
 
 local TIMING_NAME = {
@@ -49,19 +51,18 @@ local TIMING_TIME = {
 	RAID_NOTICE_SCALE_DOWN_TIME = 0.2,
 };
 
-
 -- test spell
 local previewDataCache = {
-	locType = "MOVE",
+	locType = "Test",
 	spellID = 0,
 	startTime = 0,
 	duration = 60,
 	expirationTime = 0,
 	timeRemaining = 0,
-	displayType = 2,
-	displayText = "Move Mode",
+	displayType = Data.DisplayType.Full,
+	displayText = "Test Mode",
 	iconTexture = "Interface\\Icons\\INV_Misc_QuestionMark",
-	priority = 999,
+	priority = 999, -- this means it will block any real CC
 };
 
 
@@ -79,31 +80,29 @@ function LossOfControlFrameMixin:OnLoad()
 	self:ApplyVisualOptions();
 	self:ApplyPosition();
 
-	-- self.eventIDs = {
 	Dispatch:RegisterEvent("LOSS_OF_CONTROL_UPDATE", self, "OnLossOfControlUpdate");
 	Dispatch:RegisterEvent("LOSS_OF_CONTROL_ADDED", self, "OnLossOfControlAdded");
-	-- };
 
 	self:UpdateDisplay(false);
 end
 
 function LossOfControlFrameMixin:InitFrame(frame)
 	frame:Hide();
-
-	frame.TimeLeft.SecondsText:SetText(self.L.SECONDS);
-	frame.TimeLeft.secondsWidth = frame.TimeLeft.SecondsText:GetStringWidth();
-	frame.TimeLeft.numberWidth = 0;
-
 	frame.updateTick = 0;
 	frame.isUpdating = false;
 
+	-- text height must be set after first render
+	frame.TimeLeft.numberWidth = 0;
+	self:CacheTimeLeftWidths();
+	self.needsTextPrime = true;
+
+	-- animations
 	frame.animationGroups = {
 		frame.RedLineTop.Anim,
 		frame.RedLineBottom.Anim,
 		frame.Icon.Anim,
 	};
 
-	-- Master animation finished handler
 	Events:SetScriptHandler(frame.RedLineBottom.Anim, self, "OnFinished", "OnAnimationFinished");
 
 	-- mover/drag
@@ -125,23 +124,30 @@ function LossOfControlFrameMixin:InitFrame(frame)
 	end);
 end
 
+function LossOfControlFrameMixin:CacheTimeLeftWidths()
+	local timeLeft = self.frame.TimeLeft;
+	timeLeft.SecondsText:SetText(self.L.SECONDS);
+	timeLeft.secondsWidth = timeLeft.SecondsText:GetStringWidth();
+
+	timeLeft.NumberText:SetText("8888");
+	timeLeft.staticNumberWidth = timeLeft.NumberText:GetStringWidth() - 5;
+	timeLeft.NumberText:SetText("");
+end
+
 --# -------------------- Event Handlers --------------------
 
 function LossOfControlFrameMixin:OnLossOfControlUpdate()
 	self:UpdateDisplay(false);
 end
 
-function LossOfControlFrameMixin:OnLossOfControlAdded(event, locType, spellID)
-	if self.isMoverActive then
-		return;
-	end
-
+function LossOfControlFrameMixin:OnLossOfControlAdded()
+	if self.isMoverActive then return; end
 	local isNewEffect = self:UpdateDisplay(true);
 	if isNewEffect then
 		if self.db.soundEnabled then
 			PlaySoundFile(SOUND_ALERT);
 		end
-	elseif (self.db.enablePulse ~= false) and self.frame:IsShown() then
+	elseif self.db.enablePulse and self.frame:IsShown() then
 		self:PulseCurrentDisplay();
 	end
 end
@@ -154,7 +160,6 @@ function LossOfControlFrameMixin:UpdateDisplay(animate)
 		return false;
 	end
 
-	-- get data
 	local data;
 	if self.isMoverActive then
 		data = self:GetPreviewData();
@@ -162,15 +167,13 @@ function LossOfControlFrameMixin:UpdateDisplay(animate)
 		data = C_LossOfControl.GetActiveLossOfControlData(ACTIVE_INDEX);
 	end
 
-	-- validate
-	if not data or data.displayType == 0 then
+	if not data or data.displayType == Data.DisplayType.None then
 		if not self.isMoverActive then
 			self:DisableUpdate();
 		end
 		return false;
 	end
 
-	-- format text
 	local displayText = self:GetDisplayText(data);
 	if not displayText then
 		if not self.isMoverActive then
@@ -181,15 +184,21 @@ function LossOfControlFrameMixin:UpdateDisplay(animate)
 
 	data.displayText = displayText;
 
+	local elapsed = data.timeRemaining and data.duration
+	            and data.timeRemaining < ( data.duration - 0.5);
 	local isNewEffect = (data.locType ~= self.lastLocType)
 		or (data.spellID ~= self.lastSpellID)
 		or (data.startTime ~= self.lastStartTime);
+
+	if isNewEffect and elapsed then
+		isNewEffect = false;
+	end
 
 	self.lastLocType = data.locType;
 	self.lastSpellID = data.spellID;
 	self.lastStartTime = data.startTime;
 
-	local animateIntro = animate and isNewEffect and (self.db.enableAnimations ~= false);
+	local animateIntro = animate and isNewEffect and self.db.enableAnimations;
 	self:SetUpDisplay(animateIntro, data);
 
 	return isNewEffect;
@@ -200,9 +209,9 @@ function LossOfControlFrameMixin:GetDisplayText(data)
 		return nil;
 	end
 
-	-- Mover mode
-	if data.locType == "MOVE" then
-		return data.displayText or "Move Mode";
+	-- test mode
+	if data.locType == "Test" then
+		return data.displayText or "Test Mode";
 	end
 
 	local L = self.L;
@@ -229,9 +238,17 @@ function LossOfControlFrameMixin:SetUpDisplay(animateIntro, data)
 
 	self:SetTimeLeft(data.timeRemaining);
 
+	local timeLeft = frame.TimeLeft;
+	timeLeft.SecondsText:ClearAllPoints();
+	if self.db.dynamicTextOn then
+		timeLeft.SecondsText:SetPoint("LEFT", timeLeft.NumberText, "RIGHT", SECONDS_GAP, 0);
+	else
+		timeLeft.SecondsText:SetPoint("LEFT", timeLeft, "LEFT", timeLeft.staticNumberWidth, 0);
+	end
+
 	-- layout
-	local abilityWidth = frame.AbilityName:GetWidth();
-	local timeWidth = max(abilityWidth, frame.TimeLeft.numberWidth + frame.TimeLeft.secondsWidth);
+	local abilityWidth = frame.AbilityName:GetStringWidth();
+	local timeWidth = max(abilityWidth, timeLeft.numberWidth + timeLeft.secondsWidth);
 	local longestWidth = max(abilityWidth, timeWidth);
 	local baseWidth = self.db.dynamicTextOn and longestWidth or abilityWidth;
 
@@ -243,29 +260,27 @@ function LossOfControlFrameMixin:SetUpDisplay(animateIntro, data)
 	frame.Icon:ClearAllPoints();
 	frame.Icon:SetPoint("CENTER", -((6 + baseWidth) / 2), 0);
 
-	frame.TimeLeft:ClearAllPoints();
-	frame.TimeLeft:SetPoint("CENTER", xOffset + (TIME_LEFT_FRAME_WIDTH - abilityWidth) / 2, -12);
+	timeLeft:ClearAllPoints();
+	timeLeft:SetPoint("CENTER", xOffset + (TIME_LEFT_FRAME_WIDTH - abilityWidth) / 2, -12);
 
-	-- cooldown: never show during intro if cooldownPending already set
+	-- cooldown: never show during intro if `cooldownPending` already set
 	local cooldown = frame.Cooldown;
-	local hasCooldown = data.displayType == 2
-		and data.duration
-		and data.duration > 0;
+	local hasCooldown = data.displayType == Data.DisplayType.Full
+		and data.duration and data.duration > 0;
 
 	if hasCooldown then
 		cooldown:SetDrawEdge(true);
-		cooldown:SetCooldown(data.startTime, data.duration);
-		
+
+		local elapsed = max(0, data.duration - (data.timeRemaining or data.duration));
+		cooldown:SetCooldown(GetTime() - elapsed, data.duration);
+
 		if animateIntro then
 			self.cooldownPending = true;
 			cooldown:Hide();
+
 			self:PlayIntroAnimation();
 		else
-			if self.cooldownPending then
-				cooldown:Hide();
-			else
-				cooldown:Show();
-			end
+			Util.SetShown(cooldown, not self.cooldownPending);
 		end
 	else
 		self.cooldownPending = nil;
@@ -279,20 +294,40 @@ end
 function LossOfControlFrameMixin:SetTimeLeft(timeRemaining)
 	local timeLeft = self.frame.TimeLeft;
 	if not timeRemaining or timeRemaining <= 0 then
-		-- timeLeft.numberWidth = 0;
+		timeLeft.numberWidth = 0;
 		timeLeft:Hide();
 		return;
 	end
 
-	local numberText = timeLeft.NumberText;
-	if timeRemaining >= 10 then
-		numberText:SetFormattedText("%d", timeRemaining);
+	local decimalNums = (self.db.timerDecimal ~= false);
+	if decimalNums and timeRemaining < 9.95 then
+		timeLeft.NumberText:SetFormattedText("%.1f", timeRemaining);
 	else
-		numberText:SetFormattedText("%.1f", timeRemaining);
+		timeLeft.NumberText:SetFormattedText("%d", timeRemaining);
 	end
 
-	-- timeLeft.numberWidth = numberText:GetStringWidth() + TIME_OFFSET;
+	timeLeft.numberWidth = timeLeft.NumberText:GetStringWidth() + TIME_OFFSET;
 	timeLeft:Show();
+end
+
+function LossOfControlFrameMixin:PrimeTextIfNeeded()
+	if not self.needsTextPrime then
+		return false;
+	end
+
+	local frame = self.frame;
+	local _, fontHeight = frame.AbilityName:GetFont();
+	if not fontHeight or fontHeight <= 0 then
+		return false;
+	end
+	self.needsTextPrime = false;
+
+	frame.AbilityName:SetTextHeight(TIMING_NAME.RAID_NOTICE_MIN_HEIGHT);
+	frame.TimeLeft.NumberText:SetTextHeight(TIMING_TIME.RAID_NOTICE_MIN_HEIGHT);
+	frame.TimeLeft.SecondsText:SetTextHeight(TIMING_TIME.RAID_NOTICE_MIN_HEIGHT);
+
+	self:CacheTimeLeftWidths();
+	return true;
 end
 
 --# -------------------- Animation --------------------
@@ -309,7 +344,7 @@ function LossOfControlFrameMixin:PlayIntroAnimation()
 
 	-- Play all animations
 	local groups = frame.animationGroups;
-	for i = 1, #groups do -- so?
+	for i = 1, #groups do
 		local group = groups[i];
 		group:Stop();
 		group:Play();
@@ -350,7 +385,9 @@ function LossOfControlFrameMixin:DisableUpdate()
 		return;
 	end
 
-	frame:Hide();
+	if not self.isMoverActive then
+		frame:Hide();
+	end
 	frame.isUpdating = false;
 
 	Events:ClearScriptHandler(frame, "OnUpdate");
@@ -361,25 +398,28 @@ function LossOfControlFrameMixin:OnUpdate(elapsed)
 	frame.updateTick = frame.updateTick + elapsed;
 	if frame.updateTick < UPDATE_THROTTLE then return; end
 
-	local dt = frame.updateTick;
+	local tick = frame.updateTick;
 	frame.updateTick = 0;
 
-	Util.AnimateScaleText(frame.AbilityName, TIMING_NAME, dt);
-	Util.AnimateScaleText(frame.TimeLeft.NumberText, TIMING_TIME, dt);
-	Util.AnimateScaleText(frame.TimeLeft.SecondsText, TIMING_TIME, dt);
+	if self:PrimeTextIfNeeded() then
+		self:UpdateDisplay(false);
+		return;
+	end
 
-	-- Mover stays alive
+	Util.AnimateScaleText(frame.AbilityName, TIMING_NAME, tick);
+	Util.AnimateScaleText(frame.TimeLeft.NumberText, TIMING_TIME, tick);
+	Util.AnimateScaleText(frame.TimeLeft.SecondsText, TIMING_TIME, tick);
+
 	if self.isMoverActive then
 		self:UpdateDisplay(false);
 		return;
 	end
 
 	-- Fade (alert)
-	if Util.ProcessFade(frame, dt) then
-		return; -- still fading
+	if Util.ProcessFade(frame, tick) then
+		return;
 	end
 
-	-- Check for expired effects and refresh display
 	local removed = C_LossOfControl.RemoveExpiredEffects();
 	if (removed or C_LossOfControl.GetActiveLossOfControlDataCount() > 0) then
 		self:UpdateDisplay(false);
@@ -392,8 +432,8 @@ end
 
 function LossOfControlFrameMixin:ApplyVisualOptions()
 	local frame = self.frame;
-	local showBg = (self.db.showBackground ~= false);
-	local showRed = (self.db.showRedLines ~= false);
+	local showBg = self.db.showBackground;
+	local showRed = self.db.showRedLines;
 
 	Util.SetShown(frame.blackBg, showBg);
 	Util.SetShown(frame.RedLineTop, showRed);
@@ -404,15 +444,23 @@ function LossOfControlFrameMixin:SetMoverEnabled(enabled)
 	local db = self.db;
 
 	db.frameUnlocked = enabled;
-	db.moverMode = enabled;
 	self.isMoverActive = enabled;
 
 	if enabled then
 		self.moverStartTime = GetTime();
-	end
+		self:ApplyPosition();
+		self:UpdateDisplay(true);
+	else
+		self.moverStartTime = nil;
+		self.lastLocType = nil; -- reset change detection
+		self.lastSpellID = nil;
+		self.lastStartTime = nil;
+		self:ApplyPosition();
 
-	self:ApplyPosition();
-	self:UpdateDisplay(true);
+		if not self:UpdateDisplay(false) then
+			self:DisableUpdate();
+		end
+	end
 end
 
 --# -------------------- Position --------------------
@@ -465,7 +513,10 @@ function LossOfControlFrameMixin:GetPreviewData()
 	local startTime = self.moverStartTime or now;
 	local duration = 60;
 	local remaining = duration - (now - startTime);
-	if remaining < 0 then remaining = 0; end
+	if remaining <= 0 then
+		self.moverStartTime = now;
+		remaining = duration;
+	end
 
 	-- update cache
 	previewDataCache.startTime = startTime;

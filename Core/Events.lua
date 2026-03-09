@@ -11,10 +11,23 @@
 --@class Engine<ns>
 local Engine = select(2, ...);
 
---@class Events
+--@class Events<core>
 local Events = {};
 Engine.Events = Events;
 
+
+--# -------------------- Restricted Events --------------------
+-- On 12.x+ clients, certain frame events are engine-restricted.
+-- ADDON_ACTION_FORBIDDEN is NOT a Lua error — pcall cannot catch it.
+-- We maintain an explicit deny list based on client capability.
+
+local RESTRICTED_EVENTS;
+if (issecretvalue) then
+	-- Client has addon restrictions
+	RESTRICTED_EVENTS = {
+		["COMBAT_LOG_EVENT_UNFILTERED"] = true,
+	};
+end
 
 --# -------------------- Internal Helpers --------------------
 
@@ -28,13 +41,32 @@ local function OnEvent(frame, event, ...)
 	end
 end
 
+--- Registers events on frame, skipping engine-restricted ones.
+--- Returns a table of restricted events (or nil if all succeeded)
 local function SetupEventFrame(frame, owner, events)
 	frame._owner = owner;
 	frame:SetScript("OnEvent", OnEvent);
 
-	for i = 1, #events do
-		frame:RegisterEvent(events[i]);
+	-- Fast path?: no restrictions (Classic Era/WotLK/Cata)
+	if not RESTRICTED_EVENTS then
+		for i = 1, #events do
+			frame:RegisterEvent(events[i]);
+		end
+		return;
 	end
+
+	-- Restricted client: filter events
+	local restricted;
+	for i = 1, #events do
+		local event = events[i];
+		if RESTRICTED_EVENTS[event] then
+			restricted = restricted or {};
+			restricted[event] = true;
+		else
+			frame:RegisterEvent(event);
+		end
+	end
+	return restricted;
 end
 
 -- Script handlers cache
@@ -66,27 +98,57 @@ end
 
 --# -------------------- Events API --------------------
 
----@param owner<table> - self
+---@param owner<table>
 ---@param events<table> — array[]
----@return<Frame> NECESSARILY
+---@return<Frame> frame, <table?> restricted
 function Events:CreateEventFrame(owner, events)
 	local frame = CreateFrame("Frame");
-	SetupEventFrame(frame, owner, events);
-	return frame;
+	local restricted = SetupEventFrame(frame, owner, events);
+	return frame, restricted;
 end
 
 ---@param frame<Frame>
 ---@param owner<table>
 ---@param events<table> - array[]
+---@return<table?> restricted
 function Events:RegisterEvents(frame, owner, events)
-	SetupEventFrame(frame, owner, events);
+	return SetupEventFrame(frame, owner, events);
 end
 
 
 
+--- Add events to an already-configured frame.
+--- Does NOT reset owner or OnEvent handler.
+---@param frame<Frame>
+---@param events<table> - array[]
+---@return<table?> restricted
+function Events:AddEvents(frame, events)
+	if not RESTRICTED_EVENTS then
+		for i = 1, #events do
+			frame:RegisterEvent(events[i]);
+		end
+		return;
+	end
+
+	local restricted;
+	for i = 1, #events do
+		local event = events[i];
+		-- local success = pcall(frame.RegisterEvent, frame, event);
+		-- if not success then
+		if RESTRICTED_EVENTS[event] then
+			restricted = restricted or {};
+			restricted[event] = true;
+		else
+			frame:RegisterEvent(event);
+		end
+	end
+	return restricted;
+end
+
+
 ---@param frame<Frame>
 ---@param owner<table>
----@param eventMap<table> { EVENT_NAME = "MethodName" }
+---@param eventMap<table> - { EVENT_NAME = "MethodName" }
 function Events:RegisterEventsWithMap(frame, owner, eventMap)
 	frame._owner = owner;
 	frame._eventMap = eventMap;
@@ -100,7 +162,11 @@ function Events:RegisterEventsWithMap(frame, owner, eventMap)
 	end);
 
 	for event in pairs(eventMap) do
-		frame:RegisterEvent(event);
+		-- pcall(frame.RegisterEvent, frame, event);
+		if not RESTRICTED_EVENTS or
+		   not RESTRICTED_EVENTS[event] then
+			frame:RegisterEvent(event);
+		end
 	end
 end
 

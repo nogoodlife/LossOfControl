@@ -32,13 +32,8 @@ function Dispatcher:RegisterEvent(event, owner, methodName)
 	nextID = nextID + 1;
 	local id = nextID;
 
-	-- Create an empty table
+	events[event] = events[event] or {};
 	local bucket = events[event];
-	if not bucket then
-		bucket = {};
-		events[event] = bucket;
-	end
-
 	bucket[id] = { owner = owner, method = methodName };
 	return id;
 end
@@ -76,15 +71,17 @@ function Dispatcher:FireEvent(event, ...)
 
 	for id, data in pairs(bucket) do
 		local owner = data.owner;
-		local callback = owner[data.method];
-		if callback then
-			if Engine.Debug then
-				local ok, err = pcall(callback, owner, event, ...);
-				if not ok then
-					Engine.Log("Dispatcher error [%s]: %s", event, err);
+		if owner then
+			local callback = owner[data.method];
+			if callback then
+				if Engine.Debug then
+					local ok, err = pcall(callback, owner, event, ...);
+					if not ok then
+						Engine.Log("Dispatcher error [%s]: %s", event, err);
+					end
+				else
+					callback(owner, event, ...);
 				end
-			else
-				callback(owner, event, ...);
 			end
 		end
 	end

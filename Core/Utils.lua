@@ -17,24 +17,50 @@ local pairs = pairs;
 local floor = math.floor;
 local max = math.max;
 local min = math.min;
+local tremove = table.remove;
+local tinsert = table.insert;
 local tostring = tostring;
 local type = type;
 
 
 -- Table
 ----------------------------------------------------------------
-function Util.ShallowCopy(src)
-	if type(src) ~= "table" then
-		return src;
+function Util.Merge(dst, src, overwrite)
+	if not (dst and src) then
+		return dst;
 	end
-	
-	local copy = {};
+	if overwrite == nil then overwrite = true; end
 	for k, v in pairs(src) do
-		copy[k] = v;
+		if overwrite or dst[k] == nil then
+			dst[k] = v;
+		end
 	end
-	return copy;
+	return dst;
 end
 
+function Util.Mixin(dst, mixin)
+	return Util.Merge(dst, mixin, true);
+end
+
+
+-- Pools
+----------------------------------------------------------------
+function Util.CreatePool(createFunc, resetFunc)
+	local pool = {};
+	return {
+		Acquire = function()
+			local obj = tremove(pool);
+			if obj then return obj; end
+			return createFunc();
+		end,
+		Release = function(obj)
+			if resetFunc then
+				resetFunc(obj);
+			end
+			tinsert(pool, obj);
+		end,
+	};
+end
 
 -- Math
 ----------------------------------------------------------------
@@ -46,8 +72,12 @@ function Util.Clamp01(value)
 	return min(max(value, 0), 1);
 end
 
-function Util.Round(value)
-	return floor(value + 0.5);
+function Util.Round(value, decimals)
+	if not decimals or decimals == 0 then
+		return floor(value + 0.5);
+	end
+	local mult = 10 ^ decimals;
+	return floor(value * mult + 0.5) / mult;
 end
 
 
@@ -70,6 +100,22 @@ function Util.SetMultipleShown(shown, ...)
 			region[method](region);
 		end
 	end
+end
+
+function Util.SetColorTexture(obj, colorR, colorG, colorB, a)
+	if not obj:GetTexture() then
+		obj:SetTexture("Interface\\Buttons\\WHITE8x8");
+	end
+	obj:SetVertexColor(colorR, colorG, colorB, a);
+end
+
+-- Scripts
+----------------------------------------------------------------
+-- Util.BindScript(widget, scriptName, owner, methodName)
+function Util.BindScript(widget, scriptName, owner, methodName)
+	widget:SetScript(scriptName, function(self, ...)
+		owner[methodName](owner, self, ...);
+	end);
 end
 
 
@@ -125,9 +171,7 @@ end
 
 local ALERT_FADE_DELAY = 1.0;
 local ALERT_FADE_TIME = 0.5;
-
 function Util.ProcessFade(frame, elapsed)
-	-- Delay before fade
 	if frame.fadeDelayTime then
 		frame.fadeDelayTime = frame.fadeDelayTime - elapsed;
 		if frame.fadeDelayTime <= 0 then
@@ -136,20 +180,17 @@ function Util.ProcessFade(frame, elapsed)
 		return true;
 	end
 
-	-- Fade out
 	if frame.fadeTime and not frame.fadeDelayTime then
 		frame.fadeTime = frame.fadeTime - elapsed;
-		
 		if frame.fadeTime <= 0 then
 			frame:Hide();
 			return false;
 		end
-		
+
 		frame:SetAlpha(Util.Clamp01(frame.fadeTime / ALERT_FADE_TIME));
 		return true;
 	end
 
-	-- No fade - full alpha
 	frame:SetAlpha(1.0);
 	return false;
 end

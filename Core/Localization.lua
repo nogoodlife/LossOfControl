@@ -73,16 +73,94 @@ local TRANSLATIONS = {
 	INTERRUPT_FMT        = { "%s Locked",       "%s: недоступно",     "%s gesperrt",        "%s verrouillé",    "Bloqueo: %s",      "%s bloccati",        "%s Bloqueado",     "%s被锁定",    "禁用%s法術",     "%s 차단됨" },
 	-- Misc
 	SECONDS              = { "seconds",         "сек.",               "Sek.",               "secondes",         "segundos",         "secondi",            "segundos",         "秒",          "秒",            "초" },
-	-- Settings / UI
-	-- ADDON_TITLE          = { "Loss of Control", "Потеря контроля",    "Kontrollverlust",    "Perte de contrôle","Pérdida control",  "Perdita controllo",  "Perda de controle"," 失控警报",   "喪失控制",       "제어 불가" },
-	
-	-- enUS     ruRU     deDE     frFR     esES     zhCN     zhTW     koKR     itIT
-	-- ENABLED              = { "Enabled",         "Включено",           "Aktiviert",          "Activé",           "Abilitato",         "",                "Habilitado",       "已启用",      "已啟用",        "활성화됨" },
-	-- DISABLED             = { "Disabled",        "Выключено",          "Deaktiviert",        "Désactivé",        "Deshabilitado",     "Disabilitato",    "",                 "已禁用",      "已停用",        "비활성화됨" },
-	-- VIDEO_OPTIONS_ENABLED = ENABLED
-	-- MOVE_MODE            = { "Move Mode",       "Режим перемещения",  "Bewegungsmodus",     "Mode déplacement", "Modo de movimiento","Modalità movimento", "", "移动模式", "移動模式", "이동 모드" },
-	-- RESET_POSITION       = { "Reset Position", "Сбросить позицию", "Position zurücksetzen", "Réinitialiser la position", "Restablecer posición",  "Reimposta posizione", "", "重置位置", "重置位置", "위치 초기화" },
-	-- CMD_HELP             = { "Available commands:", "Доступные команды:", "Verfügbare Befehle:", "Commandes disponibles:", "Comandos disponibles:", "Comandi disponibili:", "", "可用命令：", "可用指令：", "사용 가능한 명령어:" },
+	-- Options/UI
+	ADDON_TITLE          = { "Loss of Control", "Потеря контроля",    "Kontrollverlust",    "Perte de contrôle","Pérdida control",  "Perdita controllo",  "Perda de controle"," 失控警报",   "喪失控制",       "제어 불가" },
+
+	-- Options: Sections
+	OPT_GENERAL          = { "General",          "Основные",           "Allgemein",          "Général",          "General",          "Generale",           "Geral",            "常规",        "一般",           "일반" },
+	OPT_VISUAL           = { "Visual",           "Визуальные",         "Visuell",            "Visuel",           "Visual",           "Visuale",            "Visual",           "视觉",        "視覺",           "시각" },
+	OPT_CC_DISPLAY       = { "CC Type Display",  "Типы контроля",      "CC-Typen",           "Types de CC",      "Tipos de CC",      "Tipi di CC",         "Tipos de CC",      "CC类型",      "CC類型",         "CC 유형" },
+	OPT_CUSTOM_AURAS     = { "Custom Auras",     "Свои ауры",          "Eigene Auren",       "Auras perso.",     "Auras custom",     "Aure custom",        "Auras custom",     "自定义",      "自訂",           "사용자 정의" },
+	OPT_ADVANCED         = { "Advanced",         "Дополнительно",      "Erweitert",          "Avancé",           "Avanzado",         "Avanzate",           "Avançado",         "高级",        "進階",           "고급" },
+	-- Options: Settings
+	OPT_ENABLED          = { "Enabled",          "Включено",           "Aktiviert",          "Activé",           "Habilitado",       "Abilitato",          "Habilitado",       "启用",        "啟用",           "활성화" },
+	OPT_SOUND            = { "Sound",            "Звук",               "Ton",                "Son",              "Sonido",           "Suono",              "Som",              "声音",        "聲音",           "소리" },
+	OPT_MOVE_FRAME       = { "Move frame",       "Переместить",        "Bewegen",            "Déplacer",         "Mover marco",      "Sposta",             "Mover quadro",     "移动框体",    "移動框架",       "프레임 이동" },
+	OPT_RESET_POS        = { "Reset position",   "Сбросить",           "Zurücksetzen",       "Réinitialiser",    "Restablecer",      "Reimposta",          "Redefinir",        "重置位置",    "重置位置",       "위치 초기화" },
+	OPT_FRAME_SCALE      = { "Frame scale",      "Масштаб",            "Skalierung",         "Échelle",          "Escala",           "Scala",              "Escala",           "缩放",        "縮放",           "크기" },
+	OPT_BACKGROUND       = { "Background",       "Фон",                "Hintergrund",        "Arrière-plan",     "Fondo",            "Sfondo",             "Fundo",            "背景",        "背景",           "배경" },
+	OPT_RED_LINES        = { "Red lines",        "Красные линии",      "Rote Linien",        "Lignes rouges",    "Líneas rojas",     "Linee rosse",        "Linhas vermelhas", "红线",        "紅線",           "빨간 선" },
+	OPT_ANIMATIONS       = { "Animations",       "Анимации",           "Animationen",        "Animations",       "Animaciones",      "Animazioni",         "Animações",        "动画",        "動畫",           "애니메이션" },
+	OPT_PULSE            = { "Pulse",            "Пульсация",          "Pulsieren",          "Pulsation",        "Pulso",            "Impulso",            "Pulsar",           "脉冲",        "脈衝",           "펄스" },
+	OPT_DYNAMIC_TEXT     = { "Dynamic text",     "Динамический текст", "Dynamischer Text",   "Texte dynamique",  "Texto dinámico",   "Testo dinamico",     "Texto dinâmico",   "动态文本",    "動態文字",       "동적 텍스트" },
+	OPT_TIMER_DECIMAL    = { "Decimal timer",    "Дробный таймер",     "Dezimaltimer",       "Timer décimal",    "Timer fraccional", "Timer decimale",     "Timer fracionário","小数计时",    "小數計時",       "소수 타이머" },
+	OPT_LOG_UNKNOWN      = { "Log unknown",      "Информировать неизвестные","Unbekannte loggen","Journal inconnus","Log desconocidos", "Log sconosciuti",    "Log desconhecidos","记录未知",    "記錄未知",       "알 수 없는 기록" },
+	OPT_AURA_MANAGER     = { "Aura Manager",     "Управление аурами",       "Auren verwalten",    "Gérer auras",      "Gestionar auras",  "Gestisci aure",      "Gerenciar auras",  "管理自定义",  "管理自訂",       "관리" },
+	OPT_PRIORITY         = { "Priority",         "Приоритет",          "Priorität",          "Priorité",         "Prioridad",        "Priorità",           "Prioridade",       "优先级",      "優先級",         "우선순위" },
+	-- Options: Custom Auras
+	OPT_SPELL_ID         = { "Spell ID:",        "ID заклинания:",     "Zauber-ID:",         "ID sort:",         "ID hechizo:",      "ID incantesimo:",    "ID feitiço:",      "法术ID：",     "法術ID：",       "주문 ID:" },
+	OPT_TYPE             = { "Type:",            "Тип:",               "Typ:",               "Type:",            "Tipo:",            "Tipo:",              "Tipo:",            "类型：",        "類型：",         "유형:" },
+	OPT_ADD_AURA         = { "Add Aura",         "Добавить",           "Hinzufügen",         "Ajouter",          "Añadir",           "Aggiungi",           "Adicionar",        "添加",         "新增",           "추가" },
+	OPT_REMOVE           = { "Remove",           "Удалить",            "Entfernen",          "Retirer",          "Quitar",           "Rimuovi",            "Remover",          "移除",         "移除",           "제거" },
+	OPT_CLEAR_ALL        = { "Clear All",        "Очистить всё",       "Alle löschen",       "Tout effacer",     "Borrar todo",      "Cancella tutto",     "Limpar tudo",      "全部清除",     "全部清除",       "전체 삭제" },
+	OPT_CLEAR_AURAS      = { "Clear Auras",      "Очистить ауры",      "Auren löschen",      "Effacer auras",    "Borrar auras",     "Cancella aure",      "Limpar auras",     "清除光环",     "清除光環",       "오라 삭제" },
+	OPT_CURRENT_AURAS    = { "Current Auras:",   "Текущие ауры:",      "Aktuelle Auren:",    "Auras actuelles:", "Auras actuales:",  "Aure attuali:",      "Auras atuais:",    "当前自定义：",  "目前自訂：",     "현재 목록:" },
+	OPT_UNKNOWN          = { "Unknown",          "Неизвестно",         "Unbekannt",          "Inconnu",          "Desconocido",      "Sconosciuto",        "Desconhecido",     "未知",         "未知",          "알 수 없음" },
+	OPT_ALREADY_IN_CC    = { "Already in built-in CC list", "Уже в списке CC", "Bereits in CC-Liste", "Déjà dans la liste CC", "Ya en lista CC", "Già in lista CC", "Já na lista CC", "已在CC列表中", "已在CC列表中", "기본 CC 목록에 있음" },
+	OPT_ALREADY_IN_INTERRUPT = { "Already in built-in interrupt list", "Уже в списке прерываний", "Bereits in Unterbrechungsliste", "Déjà dans la liste interruptions", "Ya en lista interrupciones", "Già in lista interruzioni", "Já na lista interrupções", "已在打断列表中", "已在打斷列表中", "기본 차단 목록에 있음" },
+	-- Options: Custom Interrupts
+	OPT_CUSTOM_INTERRUPTS = { "Custom Interrupts", "Свои прерывания", "Eigene Unterbrechungen", "Interruptions perso.", "Interrupciones custom", "Interruzioni custom", "Interrupções custom", "自定义打断", "自訂打斷", "사용자 정의 차단" },
+	OPT_DURATION         = { "Duration (sec):",   "Длительность (сек):", "Dauer (Sek):",       "Durée (sec):",      "Duración (seg):",   "Durata (sec):",      "Duração (seg):",   "持续时间(秒)：", "持續時間(秒)：", "지속 시간(초):" },
+	OPT_ADD_INTERRUPT    = { "Add Interrupt",    "Добавить",           "Hinzufügen",         "Ajouter",           "Añadir",           "Aggiungi",           "Adicionar",        "添加打断",  "新增打斷",       "차단 추가" },
+	OPT_CURRENT_INTERRUPTS = { "Current interrupts:", "Текущие прерывания:", "Aktuelle Unterbrechungen:", "Interruptions actuelles:", "Interrupciones actuales:", "Interruzioni attuali:", "Interrupções atuais:", "当前自定义打断：", "目前自訂打斷：", "현재 목록:" },
+	OPT_NO_CUSTOM_INTERRUPTS = { "No custom interrupts defined.", "Нет своих прерываний.", "Keine Unterbrechungen.", "Aucune interruption.", "Sin interrupciones.", "Nessuna interruzione.", "Nenhuma interrupção.", "未定义打断。", "未定義打斷。", "정의된 차단 없음." },
+	OPT_CLEAR_INTERRUPTS  = { "Clear Interrupts", "Очистить прерывания", "Interrupts löschen", "Effacer interruptions", "Borrar interrupciones", "Cancella interruzioni", "Limpar interrupções", "清除打断", "清除打斷", "차단 삭제" },
+	-- Options: Display modes
+	OPT_DISPLAY_OFF          = { "Off",              "Выкл",               "Aus",                "Désactivé",        "Desactivado",      "Disattivato",        "Desligado",        "关闭",        "關閉",           "끔" },
+	OPT_DISPLAY_ALERT        = { "Alert only",       "Только оповещение",  "Nur Warnung",        "Alerte seule",     "Solo alerta",      "Solo avviso",        "Apenas alerta",    "仅提醒",      "僅提醒",         "알림만" },
+	OPT_DISPLAY_FULL         = { "Full display",     "Полное отображение", "Vollständig",        "Affichage complet","Completo",         "Completo",           "Completo",         "完整显示",    "完整顯示",       "전체 표시" },
+
+	-- Options: Desc
+	OPT_CC_DESC = {
+		"Display mode and priority for each CC type.",
+		"Режим отображения и приоритет для каждого типа контроля.",
+		"Anzeigemodus und Priorität für jeden CC-Typ.",
+		"Mode et priorité par type de CC.",
+		"Modo y prioridad por tipo de CC.",
+		"Modalità e priorità per tipo di CC.",
+		"Modo e prioridade por tipo de CC.",
+		"每种CC类型的显示模式和优先级。",
+		"每種CC類型的顯示模式和優先級。",
+		"CC 유형별 표시 모드 및 우선순위."
+	},
+	OPT_NO_CUSTOM_AURAS  = {
+		"No custom auras defined.\nUse the form above to add.",
+		"Нет своих аур.\nИспользуйте форму выше.",
+		"Keine Auren definiert.\nFormular oben nutzen.",
+		"Aucune aura.\nUtilisez le formulaire ci-dessus.",
+		"Sin auras.\nUse el formulario de arriba.",
+		"Nessuna aura.\nUsa il modulo sopra.",
+		"Nenhuma aura.\nUse o formulário acima.",
+		"未定义自定义。\n使用上方表单添加。",
+		"未定義自訂。\n使用上方表單新增。",
+		"정의된 aura 없음.\n위 양식을 사용하세요."
+	},
+
+	OPT_CUSTOM_AURAS_DESC = {
+		"Add custom CC spells to track. Use the button below or /loc auras.",
+		"Добавьте свои заклинания для отслеживания. Кнопка ниже или /loc auras.",
+		"Eigene CC-Zauber hinzufügen. Button unten oder /loc auras.",
+		"Ajoutez des sorts CC personnalisés. Bouton ci-dessous ou /loc auras.",
+		"Añade hechizos CC personalizados. Botón abajo o /loc auras.",
+		"Aggiungi incantesimi CC personalizzati. Pulsante sotto o /loc auras.",
+		"Adicione feitiços CC personalizados. Botão abaixo ou /loc auras.",
+		"添加自定义CC法术。使用下方按钮或 /loc auras。",
+		"新增自訂CC法術。使用下方按鈕或 /loc auras。",
+		"추적할 맞춤 CC 주문 추가. 아래 버튼 또는 /loc auras."
+	},
+	-- Options: Tooltips
+	OPT_DYNAMIC_TEXT_TIP  = { "Position 'seconds' next to the number. When off, use fixed offset.", "Располагать «сек.» рядом с числом. Выкл — фиксированный отступ.", "Positioniere 'Sek.' neben der Zahl. Aus: fester Abstand.", "Positionner 'secondes' à côté du nombre. Désactivé: décalage fixe.", "Posicionar 'segundos' junto al número. Desactivado: desplazamiento fijo.", "Posiziona 'secondi' accanto al numero. Disattivato: offset fisso.", "Posicionar 'segundos' ao lado do número. Desativado: deslocamento fixo.", "将“秒”放在数字旁边。关闭：固定偏移。", "將「秒」放在數字旁邊。關閉：固定偏移。", "숫자 옆에 '초' 배치. 끄면 고정 오프셋." },
+	OPT_TIMER_DECIMAL_TIP = { "Show decimal (e.g. 9.5) for remaining time under 10 seconds.", "Показывать дробную часть (напр. 9.5) для оставшегося времени менее 10 сек.", "Dezimalstelle (z.B. 9,5) für Restzeit unter 10 Sek. anzeigen.", "Afficher les décimales (ex. 9,5) pour le temps restant sous 10 s.", "Mostrar decimales (ej. 9,5) para tiempo restante bajo 10 s.", "Mostra decimali (es. 9,5) per tempo rimanente sotto 10 sec.", "Mostrar decimais (ex. 9,5) para tempo restante abaixo de 10 s.", "剩余时间少于10秒时显示小数（如9.5）。", "剩餘時間少於10秒時顯示小數（如9.5）。", "10초 미만 남은 시간에 소수점 표시(예: 9.5)." },
 };
 
 
@@ -105,7 +183,7 @@ function L10N:Init()
 	TRANSLATIONS = nil;
 	LOCALE_INDEX = nil;
 
-	-- Engine.DebugLog("Localization: %s (index %d)", clientLocale, index);
+	Engine.DebugLog("Localization: %s (index %d)", clientLocale, index);
 end
 
 -- L10N:Init();
