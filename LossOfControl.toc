@@ -1,4 +1,4 @@
-## Interface: 30300, 11508, 11507, 20505, 30405, 38000, 40402, 50503, 50502, 120000
+## Interface: 30300, 11508, 11507, 20505, 30405, 38000, 40402, 50503, 50502, 120000, 120001
 ## Title: |cffff8000Loss of Control|r
 ## Author: s0high
 ## Version: 2.1.0
@@ -56,3 +56,4 @@ Modules\LossOfControlFrame.xml
 Modules\LossOfControlTracker.lua
 Modules\LossOfControlFrame.lua
 Modules\Schema.lua
+
